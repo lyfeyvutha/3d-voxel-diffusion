@@ -1,4 +1,4 @@
-## 3D-KH-MNIST ##
+## 3D Shape Generation Through Voxel Diffusion ##
 
 Train an AI to **mimic a procedural generator**.
 

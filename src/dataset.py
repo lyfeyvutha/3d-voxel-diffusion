@@ -8,34 +8,39 @@ class VoxelDataset(Dataset):
     Dataset for loading 3D voxel grids from .npy files
     
     Args:
-        root_dir: Directory containing .npy files
+        root_dir: Directory or list of directories containing .npy files
         transform: Optional transform to apply to samples
     """
     def __init__(self, root_dir, transform=None):
-        self.root_dir = root_dir
+        if isinstance(root_dir, (list, tuple)):
+            self.root_dirs = list(root_dir)
+        else:
+            self.root_dirs = [root_dir]
         self.transform = transform
         
-        # Get all .npy files in the directory
-        self.files = [f for f in os.listdir(root_dir) if f.endswith('.npy')]
+        self.files = []
+        for directory in self.root_dirs:
+            if not os.path.isdir(directory):
+                raise FileNotFoundError(f"Directory not found: {directory}")
+            for current_root, _, filenames in os.walk(directory):
+                for filename in filenames:
+                    if filename.endswith('.npy'):
+                        self.files.append(os.path.join(current_root, filename))
         
         if len(self.files) == 0:
-            raise FileNotFoundError(f"No .npy files found in {root_dir}")
+            raise FileNotFoundError(f"No .npy files found in {self.root_dirs}")
         
-        print(f"Found {len(self.files)} .npy file(s) in {root_dir}")
+        self.files.sort()
+        total = len(self.files)
+        print(f"Found {total} .npy file(s) in {', '.join(self.root_dirs)}")
     
     def __len__(self):
         return len(self.files)
     
     def __getitem__(self, idx):
-        # Load the .npy file
-        file_path = os.path.join(self.root_dir, self.files[idx])
-        voxel_grid = np.load(file_path)
-        
-        # Ensure it's float32
-        voxel_grid = voxel_grid.astype(np.float32)
-        
-        # Convert to tensor and add channel dimension
-        # Shape: (64, 64, 64) -> (1, 64, 64, 64)
+        file_path = self.files[idx]
+        voxel_grid = np.load(file_path).astype(np.float32)
+
         voxel_tensor = torch.from_numpy(voxel_grid).unsqueeze(0)
         
         if self.transform:

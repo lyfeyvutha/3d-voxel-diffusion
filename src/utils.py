@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import math
 import time
+from src.config import PREDICTION_CLAMP
 
 # Noise Schedules
 def linear_beta_schedule(timesteps, device=None):
@@ -125,7 +126,7 @@ def p_sample(model, x, t, i, schedule):
     
     x_{t-1} = (1/√α_t) * (x_t - (β_t / √(1-ᾱ_t)) * ε_θ(x_t, t)) + σ_t * z
     """
-    # 1. Get all the pre-calculated coefficients from our schedule
+    # 1. Get all the pre-calculated coefficients from our "toolbox"
     betas_t = extract(schedule["betas"], t, x.shape)
     sqrt_one_minus_alphas_cumprod_t = extract(schedule["sqrt_one_minus_alphas_cumprod"], t, x.shape)
     alphas_t = extract(schedule["alphas"], t, x.shape)
@@ -133,7 +134,7 @@ def p_sample(model, x, t, i, schedule):
 
     # 2. Predict the clean voxel grid and derive the noise (ε_θ)
     predicted_raw = model(x, t)
-    predicted_clean = torch.clamp(predicted_raw, -1.0, 1.0)
+    predicted_clean = torch.tanh(predicted_raw) * PREDICTION_CLAMP
     predicted_noise = (x - extract(schedule["sqrt_alphas_cumprod"], t, x.shape) * predicted_clean) / torch.clamp(extract(schedule["sqrt_one_minus_alphas_cumprod"], t, x.shape), min=1e-3)
     
     # 3. Calculate the "mean" (This is the first half of the big formula)

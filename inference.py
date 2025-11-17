@@ -145,14 +145,15 @@ def p_sample_loop_fast(model, shape, full_timesteps, sampling_timesteps, schedul
 
     for i in tqdm(range(sampling_timesteps), desc="Sampling", total=sampling_timesteps):
         t = ts[i].unsqueeze(0)
-        eps_theta = model(img, t)
+        raw_output = model(img, t)
+        predicted_clean = torch.tanh(raw_output) * PREDICTION_CLAMP
 
         alpha_bar_t = extract(alphas_cumprod, t, img.shape)
         sqrt_alpha_bar_t = torch.sqrt(alpha_bar_t)
         sqrt_one_minus_alpha_bar_t = torch.sqrt(torch.clamp(1.0 - alpha_bar_t, min=1e-12))
 
-        x0_pred = (img - sqrt_one_minus_alpha_bar_t * eps_theta) / sqrt_alpha_bar_t
-        x0_pred = torch.clamp(x0_pred, -1.0, 1.0)
+        predicted_noise = (img - sqrt_alpha_bar_t * predicted_clean) / torch.clamp(sqrt_one_minus_alpha_bar_t, min=1e-6)
+        x0_pred = predicted_clean
 
         if i == sampling_timesteps - 1:
             img = x0_pred
@@ -162,7 +163,7 @@ def p_sample_loop_fast(model, shape, full_timesteps, sampling_timesteps, schedul
             sqrt_alpha_bar_next = torch.sqrt(alpha_bar_next)
             sqrt_one_minus_alpha_bar_next = torch.sqrt(torch.clamp(1.0 - alpha_bar_next, min=1e-12))
 
-            img = (sqrt_alpha_bar_next * x0_pred) + (sqrt_one_minus_alpha_bar_next * eps_theta)
+            img = (sqrt_alpha_bar_next * x0_pred) + (sqrt_one_minus_alpha_bar_next * predicted_noise)
 
         img_denoised = torch.clamp((img + 1.0) / 2.0, 0.0, 1.0)
         grid_3d = img_denoised.squeeze().cpu().numpy()
@@ -228,13 +229,31 @@ def main():
         action='store_true',
         help='Use autoencoder-only weights and skip diffusion sampling.'
     )
+    parser.add_argument(
+        '--reference_split',
+        type=str,
+        choices=['train', 'val'],
+        default='val',
+        help='Which dataset split to use for reference comparison.'
+    )
+    parser.add_argument(
+        '--reference_index',
+        type=int,
+        default=0,
+        help='Index of the reference sample to compare against.'
+    )
+    parser.add_argument(
+        '--reference_random',
+        action='store_true',
+        help='Choose a random reference sample instead of a fixed index.'
+    )
     args = parser.parse_args()
     
     # Load model
     if args.autoencoder_only:
         model_path = os.path.join(CHECKPOINT_DIR, "autoencoder_best_model.pth")
     else:
-    model_path = os.path.join(CHECKPOINT_DIR, args.model_filename)
+        model_path = os.path.join(CHECKPOINT_DIR, args.model_filename)
     if not os.path.exists(model_path):
         print(f"Error: Model not found at {model_path}")
         return
@@ -242,21 +261,31 @@ def main():
     print("Loading building blocks...")
     schedule = get_ddpm_schedule(TIMESTEPS, device=device)
     model = UNet3D(in_channels=1, out_channels=1).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    checkpoint = torch.load(model_path, map_location=device)
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        model.load_state_dict(checkpoint["model_state_dict"])
+    else:
+        model.load_state_dict(checkpoint)
     print(f"Successfully loaded model: {model_path}")
     
-    # Load original sample
+    # Determine reference dataset
+    reference_dir = DATA_VAL_DIR if args.reference_split == 'val' and os.path.isdir(DATA_VAL_DIR) else DATA_TRAIN_DIR
+
+    # Load reference sample
     try:
-        dataset = VoxelDataset(root_dir=DATA_DIR)
-        original_grid_tensor = dataset[0]
+        reference_dataset = VoxelDataset(reference_dir)
+        if args.reference_random:
+            idx = np.random.randint(0, len(reference_dataset))
+        else:
+            idx = max(0, min(args.reference_index, len(reference_dataset) - 1))
+        original_grid_tensor = reference_dataset[idx]
         
-        # Normalize for comparison
         original_grid_normalized = (original_grid_tensor.squeeze().numpy() * 2.0) - 1.0
         original_grid_plot = (original_grid_normalized + 1.0) / 2.0
         
-        print(f"Loaded original sample from: {DATA_DIR}")
+        print(f"Loaded reference sample {idx} from: {reference_dir}")
     except Exception as e:
-        print(f"Error loading original sample: {e}")
+        print(f"Error loading reference sample: {e}")
         return
     
     # Generate samples
@@ -272,52 +301,49 @@ def main():
             with torch.no_grad():
                 input_tensor = (original_grid_tensor * 2.0 - 1.0).unsqueeze(0).to(device)
                 t_zero = torch.zeros((1,), device=device, dtype=torch.long)
-                predicted_clean = model(input_tensor, t_zero).squeeze().cpu().numpy()
-            generated_grid = np.clip((predicted_clean + 1.0) / 2.0, 0.0, 1.0)
+                raw_output = model(input_tensor, t_zero)
+                predicted_clean = torch.clamp(raw_output, -1.0, 1.0)
+                generated_grid = np.clip((predicted_clean.squeeze().cpu().numpy() + 1.0) / 2.0, 0.0, 1.0)
             gif_frames = []
             model.train()
         else:
-        # Generate
-        use_full_ddpm = args.sampler.lower() == 'ddpm'
-        if use_full_ddpm:
-            generated_grid, gif_frames = p_sample_loop_ddpm(
-                model,
-                shape,
-                TIMESTEPS,
-                schedule
-            )
-        else:
-            generated_grid, gif_frames = p_sample_loop_fast(
-                model,
-                shape,
-                TIMESTEPS,
-                SAMPLING_TIMESTEPS,
-                schedule
-            )
+            use_full_ddpm = args.sampler.lower() == 'ddpm'
+            if use_full_ddpm:
+                generated_grid, gif_frames = p_sample_loop_ddpm(
+                    model,
+                    shape,
+                    TIMESTEPS,
+                    schedule
+                )
+            else:
+                generated_grid, gif_frames = p_sample_loop_fast(
+                    model,
+                    shape,
+                    TIMESTEPS,
+                    SAMPLING_TIMESTEPS,
+                    schedule
+                )
 
-        # Compute reconstruction error against original sample
         generated_grid_clamped = np.clip(generated_grid, 0.0, 1.0)
         original_grid_clamped = np.clip(original_grid_plot, 0.0, 1.0)
         l2_error = np.sqrt(np.mean((generated_grid_clamped - original_grid_clamped) ** 2))
-        print(f"L2 error vs original: {l2_error:.6f}")
+        print(f"L2 error vs reference: {l2_error:.6f}")
         
-        # Save GIF
         gif_filename = f"denoising_process_{args.model_filename.split('.')[0]}_sample_{sample_num}.gif"
         gif_path = os.path.join(SAMPLE_DIR, gif_filename)
         if gif_frames:
-        print(f"Saving denoising GIF to: {gif_path}...")
-        duration_ms = max(15000 / len(gif_frames), 33)
-        imageio.mimsave(gif_path, gif_frames, duration=duration_ms, loop=0)
+            print(f"Saving denoising GIF to: {gif_path}...")
+            duration_ms = max(15000 / len(gif_frames), 33)
+            imageio.mimsave(gif_path, gif_frames, duration=duration_ms, loop=0)
         else:
             print("Skipping GIF generation (no diffusion frames).")
         
-        # Save comparison plot
         plot_filename = f"comparison_plot_{args.model_filename.split('.')[0]}_sample_{sample_num}.png"
         plot_path = os.path.join(SAMPLE_DIR, plot_filename)
         
         print(f"Saving comprehensive comparison plot...")
-        generated_grid_plot = np.clip(generated_grid, 0.0, 1.0)
-        plot_comparison_with_slices(original_grid_plot, generated_grid_plot, plot_path)
+        generated_grid_plot = generated_grid_clamped
+        plot_comparison_with_slices(original_grid_clamped, generated_grid_plot, plot_path)
     
     print("\n--- All jobs complete! ---")
     print(f"You can now download the files from '{SAMPLE_DIR}' on OSCAR.")

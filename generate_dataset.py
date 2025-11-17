@@ -9,11 +9,17 @@ from mpl_toolkits.mplot3d import Axes3D
 import skimage.measure as measure
 
 # --- Configuration ---
-FONT_PATH = 'KantumruyPro-Regular.ttf' 
-DATASET_DIR = "khmer_numeral_dataset_smooth_64" # 
-NUMERALS = "១" # 
+FONT_PATH = 'src/KantumruyPro-Regular.ttf'
+OUTPUT_BASE_DIR = os.path.join('data', 'khmer1')
+TRAIN_DIR = os.path.join(OUTPUT_BASE_DIR, 'train')
+VAL_DIR = os.path.join(OUTPUT_BASE_DIR, 'val')
+NUMERALS = "១"
 
-SAMPLES_PER_NUMERAL = 500
+TRAIN_SAMPLES_PER_NUMERAL = 200
+VAL_SAMPLES_PER_NUMERAL = 40
+GAUSSIAN_NOISE_STD = 0.02
+MIN_INTENSITY_SCALE = 0.9
+MAX_INTENSITY_SCALE = 1.1
 
 # VOXEL_SIZE must match IMG_SIZE
 IMG_SIZE = 64
@@ -118,17 +124,20 @@ def generate_dataset():
         print(f"Font file not found at '{FONT_PATH}'. Please update the path.")
         return False
 
-    if os.path.exists(DATASET_DIR):
-        print(f"Dataset directory '{DATASET_DIR}' already exists. Recreating it.")
-        shutil.rmtree(DATASET_DIR)
+    # Reset directories
+    if os.path.exists(OUTPUT_BASE_DIR):
+        print(f"Dataset directory '{OUTPUT_BASE_DIR}' already exists. Recreating it.")
+        shutil.rmtree(OUTPUT_BASE_DIR)
         
-    os.makedirs(DATASET_DIR, exist_ok=True)
-    print(f"Created dataset directory: '{DATASET_DIR}'")
+    os.makedirs(TRAIN_DIR, exist_ok=True)
+    os.makedirs(VAL_DIR, exist_ok=True)
+    print(f"Created dataset directories: '{TRAIN_DIR}' and '{VAL_DIR}'")
 
-    # Changed font size to fill the 64x64 canvas
     font = ImageFont.truetype(FONT_PATH, int(IMG_SIZE * 1.1)) 
     
-    total_files = len(NUMERALS) * SAMPLES_PER_NUMERAL
+    total_train = len(NUMERALS) * TRAIN_SAMPLES_PER_NUMERAL
+    total_val = len(NUMERALS) * VAL_SAMPLES_PER_NUMERAL
+    total_files = total_train + total_val
     count = 0
     
     for i, char in enumerate(NUMERALS):
@@ -137,18 +146,30 @@ def generate_dataset():
         base_2d = rasterize_char(char, font, IMG_SIZE)
         base_3d = extrude_to_3d(base_2d, EXTRUSION_DEPTH, VOXEL_SIZE)
         
-        for j in range(SAMPLES_PER_NUMERAL):
-            augmented_voxel = apply_augmentations(base_3d.copy())
-            
-            # The data is now a "density cloud" (floats from 0.0 to 1.0)
-            filename = f"numeral_{i}_{j:04d}.npy"
-            filepath = os.path.join(DATASET_DIR, filename)
-            np.save(filepath, augmented_voxel)
-            
-            count += 1
-            print(f"\r Saved {count}/{total_files}", end="")
+        for split, num_samples, split_dir in (
+            ("train", TRAIN_SAMPLES_PER_NUMERAL, TRAIN_DIR),
+            ("val", VAL_SAMPLES_PER_NUMERAL, VAL_DIR),
+        ):
+            for j in range(num_samples):
+                augmented_voxel = apply_augmentations(base_3d.copy())
+                
+                # Random intensity scaling and noise to increase variance
+                scale = np.random.uniform(MIN_INTENSITY_SCALE, MAX_INTENSITY_SCALE)
+                augmented_voxel = np.clip(augmented_voxel * scale, 0.0, 1.0)
+                noise = np.random.normal(0.0, GAUSSIAN_NOISE_STD, size=augmented_voxel.shape)
+                augmented_voxel = np.clip(augmented_voxel + noise, 0.0, 1.0)
+
+                filename = f"numeral_{i}_{split}_{j:05d}.npy"
+                filepath = os.path.join(split_dir, filename)
+                np.save(filepath, augmented_voxel)
+                
+                count += 1
+                if count % 100 == 0 or count == total_files:
+                    print(f"\r Saved {count}/{total_files}", end="")
     
-    print(f"\n\n Dataset generation complete. {total_files} files created.")
+    print(
+        f"\n\n Dataset generation complete. {total_files} files created (train: {total_train}, val: {total_val})."
+    )
     return True
 
 def visualize_sample(dataset_dir):
@@ -186,4 +207,4 @@ def visualize_sample(dataset_dir):
 
 if __name__ == "__main__":
     if generate_dataset():
-        visualize_sample(DATASET_DIR)
+        visualize_sample(TRAIN_DIR) # Changed to TRAIN_DIR for visualization

@@ -6,5 +6,10 @@ Writing a script that programmatically generates a 3D dataset of one shape class
 
 The goal is to train a generative model that learns the *underlying rules and style* of my script, so it can produce **new, novel 3D shapes** that look like they belong in that same family."
 
+Auto Encoder:
+![](https://raw.githubusercontent.com/lyfeyvutha/3d-voxel-diffusion/latent-diffusion-numeral-1/samples/comparison_plot_autoencoder_sample_1.png
+)
 
-<img width="2662" height="1790" alt="worked" src="https://github.com/user-attachments/assets/999aadc6-6831-40ce-a21d-a1b5a2a385a2" />
+Diffusion Model:
+![](https://raw.githubusercontent.com/lyfeyvutha/3d-voxel-diffusion/latent-diffusion-numeral-1/samples/comparison_plot_final_model_numeral_1_sample_1.png
+)

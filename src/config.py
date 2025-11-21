@@ -1,14 +1,14 @@
 import os
 
 # --- 1. WANDB (Weights & Biases) ---
-WANDB_PROJECT = "khmer-diffusion-v1"
+WANDB_PROJECT = "khmer-diffusion-v2"
 WANDB_ENTITY = "lyfeyvutha-brown-university"
 
 # --- 2. File Paths ---
 # Use absolute paths for Slurm
 USER = os.environ.get("USER", "cvutha") # Get username from environment
-BASE_DIR = f"/users/{USER}/Desktop/3d-mnist"
-DATA_ROOT = os.path.join(BASE_DIR, "data", "khmer1")
+BASE_DIR = f"/users/{USER}/Desktop/3d-voxel-diffusion"
+DATA_ROOT = os.path.join(BASE_DIR, "data", "khmer_numerals")
 DATA_TRAIN_DIR = os.path.join(DATA_ROOT, "train")
 DATA_VAL_DIR = os.path.join(DATA_ROOT, "val")
 DATA_DIR = DATA_TRAIN_DIR
@@ -21,14 +21,14 @@ VOXEL_SIZE = 64
 IMG_SIZE = 64
 
 # --- 4. Training Parameters ---
-TRAIN_SAMPLES_PER_NUMERAL = 200
-VAL_SAMPLES_PER_NUMERAL = 40
+TRAIN_SAMPLES_PER_NUMERAL = 100
+VAL_SAMPLES_PER_NUMERAL = 20
 AUTOENCODER_PHASE_EPOCHS = 50  # More epochs for better baseline
-DIFFUSION_PHASE_EPOCHS = 3000  # Longer training with larger dataset
+DIFFUSION_PHASE_EPOCHS = 2000  # Longer training with larger dataset
 EPOCHS = AUTOENCODER_PHASE_EPOCHS + DIFFUSION_PHASE_EPOCHS
 AUTOENCODER_LEARNING_RATE = 3e-4
 DIFFUSION_LEARNING_RATE = 1e-4  # Higher LR - model needs to learn faster
-BATCH_SIZE = 8  # Larger batch for more stable gradients with more data
+BATCH_SIZE = 16  # Larger batch for more stable gradients with more data
 NOISE_RAMP_EPOCHS = 500  # Faster ramp - introduce noise earlier
 
 # --- 5. DDPM Algorithm Parameters ---

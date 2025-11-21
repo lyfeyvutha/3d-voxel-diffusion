@@ -120,6 +120,56 @@ def plot_comparison_with_slices(original_grid, generated_grid, save_path):
     plt.close(fig)
     print(f"\n✓ Saved comprehensive plot to: {save_path}")
 
+def plot_top3_similar(generated_grid, similar_grids, similarities, save_path):
+    """Create a plot showing generated shape with top 3 most similar references."""
+    
+    fig = plt.figure(figsize=(20, 14))
+    
+    # Row 1: 3D surface plots
+    # Generated sample
+    ax1 = fig.add_subplot(3, 4, 1, projection='3d')
+    plot_smooth_surface(ax1, generated_grid, title="Generated Sample (3D)")
+    
+    # Top 3 similar references
+    for i, (ref_grid, similarity) in enumerate(zip(similar_grids, similarities)):
+        ax = fig.add_subplot(3, 4, i + 2, projection='3d')
+        plot_smooth_surface(ax, ref_grid, title=f"Similar #{i+1} (L2: {similarity:.4f})")
+    
+    # Row 2: 2D center slices - Generated
+    mid = generated_grid.shape[0] // 2
+    
+    ax5 = fig.add_subplot(3, 4, 5)
+    ax5.imshow(generated_grid[mid, :, :], cmap='viridis', vmin=0, vmax=1)
+    ax5.set_title("Generated (Center Slice)")
+    ax5.axis('off')
+    
+    # Top 3 similar references - 2D slices
+    for i, (ref_grid, similarity) in enumerate(zip(similar_grids, similarities)):
+        ax = fig.add_subplot(3, 4, i + 6)
+        ax.imshow(ref_grid[mid, :, :], cmap='viridis', vmin=0, vmax=1)
+        ax.set_title(f"Similar #{i+1} (L2: {similarity:.4f})")
+        ax.axis('off')
+    
+    # Row 3: Difference plots
+    # Show generated sample again for reference
+    ax9 = fig.add_subplot(3, 4, 9)
+    ax9.imshow(generated_grid[mid, :, :], cmap='viridis', vmin=0, vmax=1)
+    ax9.set_title("Generated (Center Slice)")
+    ax9.axis('off')
+    
+    # Show difference maps for top 3 similar references
+    for i, (ref_grid, similarity) in enumerate(zip(similar_grids, similarities)):
+        ax = fig.add_subplot(3, 4, i + 10)
+        diff = np.abs(generated_grid - ref_grid)
+        ax.imshow(diff[mid, :, :], cmap='hot', vmin=0, vmax=1)
+        ax.set_title(f"Diff #{i+1} (L2: {similarity:.4f})")
+        ax.axis('off')
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"\n✓ Saved top-3 similarity plot to: {save_path}")
+
 # --- Fast Sampling Loop ---
 @torch.no_grad()
 def p_sample_loop_fast(model, shape, full_timesteps, sampling_timesteps, schedule):
@@ -271,21 +321,12 @@ def main():
     # Determine reference dataset
     reference_dir = DATA_VAL_DIR if args.reference_split == 'val' and os.path.isdir(DATA_VAL_DIR) else DATA_TRAIN_DIR
 
-    # Load reference sample
+    # Load reference dataset (use all samples to find top 3 similar)
     try:
         reference_dataset = VoxelDataset(reference_dir)
-        if args.reference_random:
-            idx = np.random.randint(0, len(reference_dataset))
-        else:
-            idx = max(0, min(args.reference_index, len(reference_dataset) - 1))
-        original_grid_tensor = reference_dataset[idx]
-        
-        original_grid_normalized = (original_grid_tensor.squeeze().numpy() * 2.0) - 1.0
-        original_grid_plot = (original_grid_normalized + 1.0) / 2.0
-        
-        print(f"Loaded reference sample {idx} from: {reference_dir}")
+        print(f"Loaded reference dataset with {len(reference_dataset)} samples from: {reference_dir}")
     except Exception as e:
-        print(f"Error loading reference sample: {e}")
+        print(f"Error loading reference dataset: {e}")
         return
     
     # Generate samples
@@ -297,9 +338,13 @@ def main():
         shape = (1, 1, VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE)
         
         if args.autoencoder_only:
+            # For autoencoder mode, we need a reference input
+            # Use a random reference sample as input
+            ref_idx = np.random.randint(0, len(reference_dataset))
+            ref_grid_tensor = reference_dataset[ref_idx]
             model.eval()
             with torch.no_grad():
-                input_tensor = (original_grid_tensor * 2.0 - 1.0).unsqueeze(0).to(device)
+                input_tensor = (ref_grid_tensor * 2.0 - 1.0).unsqueeze(0).to(device)
                 t_zero = torch.zeros((1,), device=device, dtype=torch.long)
                 raw_output = model(input_tensor, t_zero)
                 predicted_clean = torch.clamp(raw_output, -1.0, 1.0)
@@ -308,27 +353,52 @@ def main():
             model.train()
         else:
             use_full_ddpm = args.sampler.lower() == 'ddpm'
-            if use_full_ddpm:
-                generated_grid, gif_frames = p_sample_loop_ddpm(
-                    model,
-                    shape,
-                    TIMESTEPS,
-                    schedule
-                )
-            else:
-                generated_grid, gif_frames = p_sample_loop_fast(
-                    model,
-                    shape,
-                    TIMESTEPS,
-                    SAMPLING_TIMESTEPS,
-                    schedule
-                )
+        if use_full_ddpm:
+            generated_grid, gif_frames = p_sample_loop_ddpm(
+                model,
+                shape,
+                TIMESTEPS,
+                schedule
+            )
+        else:
+            generated_grid, gif_frames = p_sample_loop_fast(
+                model,
+                shape,
+                TIMESTEPS,
+                SAMPLING_TIMESTEPS,
+                schedule
+            )
 
         generated_grid_clamped = np.clip(generated_grid, 0.0, 1.0)
-        original_grid_clamped = np.clip(original_grid_plot, 0.0, 1.0)
-        l2_error = np.sqrt(np.mean((generated_grid_clamped - original_grid_clamped) ** 2))
-        print(f"L2 error vs reference: {l2_error:.6f}")
         
+        # Compute similarities with all reference samples
+        print(f"\nComputing similarities with {len(reference_dataset)} reference samples...")
+        similarities = []
+        reference_grids = []
+        
+        for ref_idx in range(len(reference_dataset)):
+            ref_grid_tensor = reference_dataset[ref_idx]
+            ref_grid_normalized = (ref_grid_tensor.squeeze().numpy() * 2.0) - 1.0
+            ref_grid_plot = np.clip((ref_grid_normalized + 1.0) / 2.0, 0.0, 1.0)
+            
+            # Compute L2 error
+            l2_error = np.sqrt(np.mean((generated_grid_clamped - ref_grid_plot) ** 2))
+            similarities.append((l2_error, ref_idx, ref_grid_plot))
+        
+        # Sort by similarity (lower L2 error = more similar)
+        similarities.sort(key=lambda x: x[0])
+        
+        # Get top 3 most similar
+        top3 = similarities[:3]
+        top3_similarities = [sim[0] for sim in top3]
+        top3_grids = [sim[2] for sim in top3]
+        top3_indices = [sim[1] for sim in top3]
+        
+        print(f"\nTop 3 most similar reference samples:")
+        for i, (sim, idx) in enumerate(zip(top3_similarities, top3_indices)):
+            print(f"  #{i+1}: Index {idx}, L2 error: {sim:.6f}")
+        
+        # Save GIF
         gif_filename = f"denoising_process_{args.model_filename.split('.')[0]}_sample_{sample_num}.gif"
         gif_path = os.path.join(SAMPLE_DIR, gif_filename)
         if gif_frames:
@@ -338,12 +408,12 @@ def main():
         else:
             print("Skipping GIF generation (no diffusion frames).")
         
+        # Save plot with top 3 similar references
         plot_filename = f"comparison_plot_{args.model_filename.split('.')[0]}_sample_{sample_num}.png"
         plot_path = os.path.join(SAMPLE_DIR, plot_filename)
         
-        print(f"Saving comprehensive comparison plot...")
-        generated_grid_plot = generated_grid_clamped
-        plot_comparison_with_slices(original_grid_clamped, generated_grid_plot, plot_path)
+        print(f"Saving comparison plot with top 3 similar references...")
+        plot_top3_similar(generated_grid_clamped, top3_grids, top3_similarities, plot_path)
     
     print("\n--- All jobs complete! ---")
     print(f"You can now download the files from '{SAMPLE_DIR}' on OSCAR.")

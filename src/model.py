@@ -54,7 +54,7 @@ class Block(nn.Module):
         
         return h + residual
 
-# --- Simple U-Net that DEFINITELY works ---
+# --- Simple U-Net ---
 class UNet3D(nn.Module):
     def __init__(self, in_channels=1, out_channels=1, time_emb_dim=128):
         super().__init__()

@@ -2,7 +2,8 @@ import os
 import shutil
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw
-# MODIFIED: Added gaussian_filter and measure (for marching_cubes)
+
+# Added gaussian_filter and measure (for marching_cubes)
 from scipy.ndimage import rotate, zoom, affine_transform, gaussian_filter
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -13,7 +14,7 @@ FONT_PATH = 'src/KantumruyPro-Regular.ttf'
 OUTPUT_BASE_DIR = os.path.join('data', 'khmer1')
 TRAIN_DIR = os.path.join(OUTPUT_BASE_DIR, 'train')
 VAL_DIR = os.path.join(OUTPUT_BASE_DIR, 'val')
-NUMERALS = "១"
+NUMERALS = "០១២៣៤៥៦៧៨៩"  # All Khmer numerals 0-9
 
 TRAIN_SAMPLES_PER_NUMERAL = 200
 VAL_SAMPLES_PER_NUMERAL = 40
@@ -174,7 +175,7 @@ def generate_dataset():
 
 def visualize_sample(dataset_dir):
     """
-    MODIFIED: Visualizes the sample using MARCHING CUBES.
+    Visualizes the sample using MARCHING CUBES.
     This shows the true smooth surface, not the blocky voxels.
     """
     print("\n Visualizing a random sample (as a smooth surface)...")

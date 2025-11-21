@@ -241,11 +241,38 @@ def run_training() -> int:
     diff_scheduler = ReduceLROnPlateau(diff_optimizer, mode="min", factor=0.5, patience=300)
     diff_scaler = GradScaler(enabled=(device.type == "cuda"))
 
+    # Check for existing checkpoints to resume from
+    start_epoch = 1
+    checkpoint_files = [f for f in os.listdir(CHECKPOINT_DIR) if f.startswith("diffusion_checkpoint_epoch_") and f.endswith(".pth")]
+    if checkpoint_files:
+        # Extract epoch numbers and find the latest
+        epoch_numbers = []
+        for f in checkpoint_files:
+            try:
+                epoch_num = int(f.replace("diffusion_checkpoint_epoch_", "").replace(".pth", ""))
+                epoch_numbers.append((epoch_num, f))
+            except ValueError:
+                continue
+        
+        if epoch_numbers:
+            latest_epoch, latest_file = max(epoch_numbers, key=lambda x: x[0])
+            checkpoint_path = os.path.join(CHECKPOINT_DIR, latest_file)
+            print(f"Found checkpoint at epoch {latest_epoch}. Loading to resume training...")
+            checkpoint = torch.load(checkpoint_path, map_location=device)
+            model.load_state_dict(checkpoint["model_state_dict"])
+            diff_optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            start_epoch = latest_epoch + 1
+            print(f"Resuming from epoch {start_epoch}/{DIFFUSION_PHASE_EPOCHS}")
+        else:
+            print("No valid checkpoints found. Starting fresh.")
+    else:
+        print("No checkpoints found. Starting fresh.")
+
     best_diff_loss = None
     best_diff_epoch = None
     best_diff_metric_label = None
     diffusion_spike_counter = 0
-    for epoch in range(1, DIFFUSION_PHASE_EPOCHS + 1):
+    for epoch in range(start_epoch, DIFFUSION_PHASE_EPOCHS + 1):
         total_noise_loss = 0.0
         total_recon_loss = 0.0
         total_recon_l1 = 0.0

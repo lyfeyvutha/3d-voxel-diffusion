@@ -1,0 +1,119 @@
+## SLURM PROLOG ###############################################################
+##    Job ID : 14269275
+##  Job Name : 3D-DDPM-Watch
+##  Nodelist : gpu2008
+##      CPUs : 
+##  Mem/Node : 32768 MB
+## Directory : /oscar/home/cvutha/Desktop/3d-mnist
+##   Job Started : Mon Nov 17 10:07:10 PM EST 2025
+###############################################################################
+==========================================
+Training job started on gpu2008.oscar.ccv.brown.edu at Mon Nov 17 10:07:10 PM EST 2025
+Job ID: 14269275
+==========================================
+Dataset directory 'data/khmer1' already exists. Recreating it.
+Created dataset directories: 'data/khmer1/train' and 'data/khmer1/val'
+
+Generating data for numeral '០' (1/10)...
+
+ Saved 100/2400
+ Saved 200/2400
+Generating data for numeral '១' (2/10)...
+
+ Saved 300/2400
+ Saved 400/2400
+Generating data for numeral '២' (3/10)...
+
+ Saved 500/2400
+ Saved 600/2400
+ Saved 700/2400
+Generating data for numeral '៣' (4/10)...
+
+ Saved 800/2400
+ Saved 900/2400
+Generating data for numeral '៤' (5/10)...
+
+ Saved 1000/2400
+ Saved 1100/2400
+ Saved 1200/2400
+Generating data for numeral '៥' (6/10)...
+
+ Saved 1300/2400
+ Saved 1400/2400
+Generating data for numeral '៦' (7/10)...
+
+ Saved 1500/2400
+ Saved 1600/2400
+Generating data for numeral '៧' (8/10)...
+
+ Saved 1700/2400
+ Saved 1800/2400
+ Saved 1900/2400
+Generating data for numeral '៨' (9/10)...
+
+ Saved 2000/2400
+ Saved 2100/2400
+Generating data for numeral '៩' (10/10)...
+
+ Saved 2200/2400
+ Saved 2300/2400
+ Saved 2400/2400
+
+ Dataset generation complete. 2400 files created (train: 2000, val: 400).
+
+ Visualizing a random sample (as a smooth surface)...
+Using device: cuda
+Weights & Biases initialized.
+Loading building blocks...
+Found 2000 .npy file(s) in /users/cvutha/Desktop/3d-mnist/data/khmer1/train
+Found 400 .npy file(s) in /users/cvutha/Desktop/3d-mnist/data/khmer1/val
+Validation loader enabled with 400 samples.
+Training configured for 50 autoencoder epochs + 2000 diffusion epochs (total 2050).
+
+===== Phase 1: Autoencoder (t=0) =====
+[AE] Epoch 0001/50 | Recon MSE: 0.018974 | Recon L1: 0.057980 | Val Recon MSE: 0.000213
+Autoencoder early-stop triggered at epoch 8.
+Autoencoder phase complete. Best recon loss: 0.000009
+
+===== Phase 2: Diffusion Fine-tuning =====
+Found checkpoint at epoch 1000. Loading to resume training...
+Resuming from epoch 1001/2000
+Saved new best diffusion model at epoch 1001 (val_recon MSE 0.005320).
+Saved new best diffusion model at epoch 1002 (val_recon MSE 0.004729).
+Saved new best diffusion model at epoch 1008 (val_recon MSE 0.004303).
+Saved new best diffusion model at epoch 1016 (val_recon MSE 0.004164).
+Saved new best diffusion model at epoch 1018 (val_recon MSE 0.003951).
+Saved new best diffusion model at epoch 1021 (val_recon MSE 0.003757).
+[Diff] Epoch 1050/2000 | Noise MSE: 0.037340 | Recon MSE: 0.004070 | Recon L1: 0.042538 | Total: 0.022740 | Val Diff Recon: 0.005235 | Val Diff Noise: 0.026629
+Saved new best diffusion model at epoch 1065 (val_recon MSE 0.003693).
+Saved new best diffusion model at epoch 1069 (val_recon MSE 0.003556).
+Saved new best diffusion model at epoch 1075 (val_recon MSE 0.003445).
+Saved new best diffusion model at epoch 1088 (val_recon MSE 0.003264).
+[Diff] Epoch 1100/2000 | Noise MSE: 0.034315 | Recon MSE: 0.004051 | Recon L1: 0.042291 | Total: 0.021209 | Val Diff Recon: 0.004233 | Val Diff Noise: 0.029398
+Saved new best diffusion model at epoch 1123 (val_recon MSE 0.002964).
+[Diff] Epoch 1150/2000 | Noise MSE: 0.034743 | Recon MSE: 0.004051 | Recon L1: 0.042232 | Total: 0.021422 | Val Diff Recon: 0.004286 | Val Diff Noise: 0.033817
+[Diff] Epoch 1200/2000 | Noise MSE: 0.030675 | Recon MSE: 0.004375 | Recon L1: 0.042512 | Total: 0.019712 | Val Diff Recon: 0.004340 | Val Diff Noise: 0.044557
+[Diff] Epoch 1250/2000 | Noise MSE: 0.034761 | Recon MSE: 0.004417 | Recon L1: 0.042469 | Total: 0.021797 | Val Diff Recon: 0.004556 | Val Diff Noise: 0.047767
+[Diff] Epoch 1300/2000 | Noise MSE: 0.036319 | Recon MSE: 0.003780 | Recon L1: 0.041602 | Total: 0.021940 | Val Diff Recon: 0.004780 | Val Diff Noise: 0.038282
+[Diff] Epoch 1350/2000 | Noise MSE: 0.040213 | Recon MSE: 0.004147 | Recon L1: 0.042041 | Total: 0.024253 | Val Diff Recon: 0.002980 | Val Diff Noise: 0.037894
+Saved new best diffusion model at epoch 1358 (val_recon MSE 0.002885).
+[Diff] Epoch 1400/2000 | Noise MSE: 0.035696 | Recon MSE: 0.004153 | Recon L1: 0.042042 | Total: 0.022001 | Val Diff Recon: 0.004740 | Val Diff Noise: 0.033560
+[Diff] Epoch 1450/2000 | Noise MSE: 0.039860 | Recon MSE: 0.003291 | Recon L1: 0.040839 | Total: 0.023221 | Val Diff Recon: 0.003905 | Val Diff Noise: 0.033637
+[Diff] Epoch 1500/2000 | Noise MSE: 0.035625 | Recon MSE: 0.003496 | Recon L1: 0.041183 | Total: 0.021308 | Val Diff Recon: 0.003400 | Val Diff Noise: 0.041588
+[Diff] Epoch 1550/2000 | Noise MSE: 0.031557 | Recon MSE: 0.003583 | Recon L1: 0.041139 | Total: 0.019362 | Val Diff Recon: 0.004231 | Val Diff Noise: 0.027890
+Saved new best diffusion model at epoch 1584 (val_recon MSE 0.002770).
+[Diff] Epoch 1600/2000 | Noise MSE: 0.032528 | Recon MSE: 0.003810 | Recon L1: 0.041435 | Total: 0.020074 | Val Diff Recon: 0.004412 | Val Diff Noise: 0.041745
+[Diff] Epoch 1650/2000 | Noise MSE: 0.038454 | Recon MSE: 0.003572 | Recon L1: 0.041091 | Total: 0.022799 | Val Diff Recon: 0.003715 | Val Diff Noise: 0.033388
+[Diff] Epoch 1700/2000 | Noise MSE: 0.033412 | Recon MSE: 0.003763 | Recon L1: 0.041307 | Total: 0.020469 | Val Diff Recon: 0.004258 | Val Diff Noise: 0.050554
+[Diff] Epoch 1750/2000 | Noise MSE: 0.039381 | Recon MSE: 0.003645 | Recon L1: 0.041098 | Total: 0.023336 | Val Diff Recon: 0.004381 | Val Diff Noise: 0.030109
+[Diff] Epoch 1800/2000 | Noise MSE: 0.034361 | Recon MSE: 0.003500 | Recon L1: 0.041026 | Total: 0.020681 | Val Diff Recon: 0.003854 | Val Diff Noise: 0.024417
+[Diff] Epoch 1850/2000 | Noise MSE: 0.030456 | Recon MSE: 0.003827 | Recon L1: 0.041481 | Total: 0.019056 | Val Diff Recon: 0.004024 | Val Diff Noise: 0.043121
+[Diff] Epoch 1900/2000 | Noise MSE: 0.033836 | Recon MSE: 0.003406 | Recon L1: 0.040849 | Total: 0.020324 | Val Diff Recon: 0.003563 | Val Diff Noise: 0.043212
+[Diff] Epoch 1950/2000 | Noise MSE: 0.035928 | Recon MSE: 0.003547 | Recon L1: 0.041070 | Total: 0.021511 | Val Diff Recon: 0.003490 | Val Diff Noise: 0.039788
+[Diff] Epoch 2000/2000 | Noise MSE: 0.032464 | Recon MSE: 0.004081 | Recon L1: 0.041742 | Total: 0.020313 | Val Diff Recon: 0.003781 | Val Diff Noise: 0.049353
+Diffusion phase complete. Best val_recon MSE: 0.002770
+Best diffusion checkpoint came from epoch 1584 at /users/cvutha/Desktop/3d-mnist/outputs/checkpoints/best_model.pth
+Final model saved to: /users/cvutha/Desktop/3d-mnist/outputs/checkpoints/final_model.pth
+Best diffusion model saved to: /users/cvutha/Desktop/3d-mnist/outputs/checkpoints/best_model.pth
+Training job finished at Wed Nov 19 10:34:39 AM EST 2025
+==========================================

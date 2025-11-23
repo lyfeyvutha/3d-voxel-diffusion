@@ -1,0 +1,45 @@
+wandb: Currently logged in as: lyfeyvutha (lyfeyvutha-brown-university) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run d53rpaj3
+wandb: Tracking run with wandb version 0.22.3
+wandb: Run data is saved locally in /oscar/home/cvutha/Desktop/3d-mnist/wandb/run-20251117_221917-d53rpaj3
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run cerulean-plasma-126
+wandb: ⭐️ View project at https://wandb.ai/lyfeyvutha-brown-university/khmer-diffusion-v1
+wandb: 🚀 View run at https://wandb.ai/lyfeyvutha-brown-university/khmer-diffusion-v1/runs/d53rpaj3
+/oscar/home/cvutha/Desktop/3d-mnist/train.py:242: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  diff_scaler = GradScaler(enabled=(device.type == "cuda"))
+/oscar/home/cvutha/Desktop/3d-mnist/train.py:292: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=(device.type == "cuda")):
+wandb: updating run metadata
+wandb: uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:             ae_epoch ▁▂▃▄▅▆▇█
+wandb:        ae_total_loss █▁▁▁▁▁▁▁
+wandb:    ae_train_recon_l1 █▂▂▂▁▁▁▁
+wandb:   ae_train_recon_mse █▁▁▁▁▁▁▁
+wandb:      ae_val_recon_l1 ▁█▄▄▄▄▄▄▄▄▄▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅▆▅▅▆▆▆▅▆▆
+wandb:     ae_val_recon_mse █▇▆▇▆▂▁▁▁▁▁▁▁▁▁▁▁▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂
+wandb:           diff_epoch ▁▁▁▁▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇▇███
+wandb:    diff_noise_weight ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb: diff_train_noise_mse ▆▅▆▂▇▄█▅▇▄▇▇▆▅▆▅▇█▇▆▆▃▆▃▅▃▃▄▃▅▄▄▃▄▆▁▅▄▅▄
+wandb:  diff_train_recon_l1 █▅▃▃▃▃▃▄▃▃▃▃▃▂▃▂▂▂▂▂▂▂▂▂▂▂▁▂▂▂▂▂▂▂▁▂▂▂▁▂
+wandb:                   +7 ...
+wandb: 
+wandb: Run summary:
+wandb:                    ae_epoch 8
+wandb:               ae_total_loss 1e-05
+wandb:           ae_train_recon_l1 0.00225
+wandb:          ae_train_recon_mse 1e-05
+wandb:             ae_val_recon_l1 6.86551
+wandb:            ae_val_recon_mse 52.92485
+wandb:              best_auto_loss 1e-05
+wandb:        best_diffusion_epoch 1584
+wandb:       best_diffusion_metric 0.00277
+wandb: best_diffusion_metric_label val_recon
+wandb:                         +12 ...
+wandb: 
+wandb: 🚀 View run cerulean-plasma-126 at: https://wandb.ai/lyfeyvutha-brown-university/khmer-diffusion-v1/runs/d53rpaj3
+wandb: ⭐️ View project at: https://wandb.ai/lyfeyvutha-brown-university/khmer-diffusion-v1
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20251117_221917-d53rpaj3/logs

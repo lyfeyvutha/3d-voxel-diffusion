@@ -2,9 +2,9 @@
 
 **A Denoising Diffusion Probabilistic Model (DDPM) for generating high-fidelity, smooth 3D Khmer numerals using continuous voxel density fields.**
 
-![Generated Sample](samples/comparison_plot_final_model_numeral_1_sample_1.png)
+![Generated Sample](samples/gallery_numerals.png)
 
-*(Left: Procedural Ground Truth, Middle: Generated Diffusion Output, Right: Difference Map)*
+*(Gallery Samples: Generated Diffusion Outputs 0-9)*
 
 ## Overview
 
